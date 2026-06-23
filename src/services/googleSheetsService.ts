@@ -307,7 +307,7 @@ export class GoogleSheetsService {
 
   static async triggerAppsScriptSync(): Promise<boolean> {
     try {
-      const url = (import.meta as any).env?.VITE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwO9RXhZRBv-bF5RiR7Rst4jul8xTjdkWbjzEeI_zaWKwOgRNBguNtE2a5p45EbwRN8VQ/exec";
+      const url = (import.meta as any).env?.VITE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycby2t95Rdv6bBZvTjUgao4GhlVk_GO0ZXffwT5vAXoec_5GEhTeAkE52vJjvX573Rkk/exec";
       await fetch(url, { method: "GET", mode: "no-cors", cache: "no-store" });
       return true;
     } catch (error) {

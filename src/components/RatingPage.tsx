@@ -30,7 +30,7 @@ export const RatingPage: React.FC<RatingPageProps> = ({ data }) => {
 
   const sidebarCards = [
     { label: "% KOMULATIF", value: `${totalPct}%`, color: totalPct === 100 ? "bg-emerald-500" : "bg-red-500", textColor: "text-white", clickable: false },
-    { label: "TOTAL PO", value: rating.totalWoPlnMobile.toLocaleString(), color: "bg-blue-600", textColor: "text-white", clickable: true, detail: rating.totalWoPlnMobileList },
+    { label: "TOTAL WO", value: rating.totalWoPlnMobile.toLocaleString(), color: "bg-blue-600", textColor: "text-white", clickable: true, detail: rating.totalWoPlnMobileList },
     { label: "RATING 5", value: rating.rating5.toLocaleString(), color: "bg-emerald-600", textColor: "text-white", clickable: true, detail: rating.rating5List },
     { label: "RATING 3-4", value: rating.rating34.toLocaleString(), color: "bg-amber-400", textColor: "text-slate-900", clickable: true, detail: rating.rating34List },
     { label: "RATING 1-2", value: rating.rating12.toLocaleString(), color: "bg-rose-600", textColor: "text-white", clickable: true, detail: rating.rating12List },
@@ -250,7 +250,7 @@ export const RatingPage: React.FC<RatingPageProps> = ({ data }) => {
                   </tr>
                   <tr className="text-white text-[8px] font-black uppercase tracking-tight leading-none bg-transparent">
                     <th className="p-0.5 w-16">
-                      <div className="bg-[#334155] p-2.5 rounded-lg border border-white/10">PO</div>
+                      <div className="bg-[#334155] p-2.5 rounded-lg border border-white/10">WO</div>
                     </th>
                     <th className="p-0.5 w-14">
                       <div className="bg-[#059669] p-2.5 rounded-lg border border-white/10">R5</div>
@@ -376,7 +376,7 @@ export const RatingPage: React.FC<RatingPageProps> = ({ data }) => {
                   </tr>
                   <tr className="text-white text-[8px] font-black uppercase tracking-tight leading-none bg-transparent">
                     <th className="p-0.5 w-16">
-                      <div className="bg-[#334155] p-2.5 rounded-lg border border-white/10">PO</div>
+                      <div className="bg-[#334155] p-2.5 rounded-lg border border-white/10">WO</div>
                     </th>
                     <th className="p-0.5 w-14">
                       <div className="bg-[#059669] p-2.5 rounded-lg border border-white/10">R5</div>
@@ -434,7 +434,7 @@ export const RatingPage: React.FC<RatingPageProps> = ({ data }) => {
               <div className="p-2 bg-white/10 rounded-xl text-brand-secondary">
                 <PieIcon size={18} />
               </div>
-              <h3 className="text-sm font-black italic tracking-tighter uppercase leading-none">PERSENTASE PO PER UNIT (ULP)</h3>
+              <h3 className="text-sm font-black italic tracking-tighter uppercase leading-none">PERSENTASE WO PER UNIT (ULP)</h3>
             </div>
             <div className="flex-1 p-4 min-h-[350px] flex items-center justify-center">
               {rating.ulpRatings && rating.ulpRatings.length > 0 && rating.ulpRatings.some(ulp => ulp.totalWoPlnMobile > 0) ? (
@@ -484,11 +484,14 @@ export const RatingPage: React.FC<RatingPageProps> = ({ data }) => {
                       paddingAngle={2}
                       dataKey="value"
                       label={({ name, percent, cx, cy, midAngle, outerRadius }: any) => {
+                        if (cx === undefined || cy === undefined || midAngle === undefined || outerRadius === undefined) return null;
                         const RADIAN = Math.PI / 180;
                         const isRight = Math.cos(-midAngle * RADIAN) > 0;
-                        const radius = typeof outerRadius === 'string' ? 60 : outerRadius + 10;
+                        const parsedRadius = typeof outerRadius === 'string' ? parseFloat(outerRadius) : outerRadius;
+                        const radius = (isNaN(parsedRadius) ? 100 : parsedRadius) + 10;
                         const x = cx + radius * Math.cos(-midAngle * RADIAN);
                         const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                        if (isNaN(x) || isNaN(y)) return null;
                         
                         return (
                           <text 

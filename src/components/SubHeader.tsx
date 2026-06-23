@@ -4,6 +4,12 @@ import { Filter, Calendar, ChevronDown, Search, RotateCcw, RefreshCw } from 'luc
 interface SubHeaderProps {
   lastSync: string;
   dataAktif: number;
+  cctvRowsCount: number;
+  cctvLastDate: string;
+  woRowsCount: number;
+  woLastDate: string;
+  poRowsCount: number;
+  poLastDate: string;
   selectedUlp: string;
   onUlpChange: (ulp: string) => void;
   ulpList: string[];
@@ -19,6 +25,12 @@ interface SubHeaderProps {
 export const SubHeader: React.FC<SubHeaderProps> = ({ 
   lastSync, 
   dataAktif, 
+  cctvRowsCount,
+  cctvLastDate,
+  woRowsCount,
+  woLastDate,
+  poRowsCount,
+  poLastDate,
   selectedUlp, 
   onUlpChange,
   ulpList,
@@ -32,7 +44,7 @@ export const SubHeader: React.FC<SubHeaderProps> = ({
 }) => {
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-4 flex flex-wrap items-center justify-between gap-4">
-      <div className="flex items-center gap-6">
+      <div className="flex flex-wrap items-center gap-6">
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-6 bg-brand-secondary rounded-full" />
           <h2 className="text-2xl font-black italic tracking-tighter text-brand-primary">
@@ -46,14 +58,34 @@ export const SubHeader: React.FC<SubHeaderProps> = ({
           </h2>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="bg-blue-600 text-white px-3 py-1 rounded-full flex items-center gap-2">
-            <span className="w-2 h-2 bg-green-400 rounded-full" />
-            <span className="text-[10px] font-black tracking-widest">{dataAktif} DATA AKTIF</span>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* CCTV DATA */}
+          <div className="bg-slate-100 border border-slate-200 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+            <span className="text-[9px] font-black tracking-wider uppercase text-slate-500">CCTV DATA:</span>
+            <span className="text-[10px] font-black text-brand-primary leading-none">{cctvRowsCount}</span>
+            <span className="text-[8px] font-bold text-gray-500 leading-none">({cctvLastDate})</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-400">
-            <RefreshCw size={12} className="animate-spin-slow" />
-            <span className="text-[10px] font-bold uppercase">TERAKHIR SINKRONISASI: {lastSync}</span>
+
+          {/* WO DATA */}
+          <div className="bg-blue-50 border border-blue-200 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+            <span className="text-[9px] font-black tracking-wider uppercase text-blue-600">WO DATA:</span>
+            <span className="text-[10px] font-black text-blue-900 leading-none">{woRowsCount}</span>
+            <span className="text-[8px] font-bold text-blue-500 leading-none">({woLastDate})</span>
+          </div>
+
+          {/* PO DATA */}
+          <div className="bg-amber-50 border border-amber-200 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse" />
+            <span className="text-[9px] font-black tracking-wider uppercase text-amber-600">PO DATA:</span>
+            <span className="text-[10px] font-black text-amber-900 leading-none">{poRowsCount}</span>
+            <span className="text-[8px] font-bold text-amber-600 leading-none">({poLastDate})</span>
+          </div>
+
+          <div className="flex items-center gap-2 text-gray-400 pl-2">
+            <RefreshCw size={11} className="animate-spin-slow" />
+            <span className="text-[9px] font-black uppercase tracking-wider">TERAKHIR SINKRONISASI: {lastSync}</span>
           </div>
         </div>
       </div>

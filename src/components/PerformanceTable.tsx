@@ -42,7 +42,17 @@ export const PerformanceTable: React.FC<PerformanceTableProps> = ({ data, onDeta
             {data.map((item, i) => {
               const woVal = parseFloat(item.persenWo) || 0;
               const poVal = parseFloat(item.persenPo) || 0;
-              const totalAvg = ((woVal + poVal) / 2).toFixed(2);
+              const hasWo = item.jumlahWoTotal > 0;
+              const hasPo = item.jumlahPoTotal > 0;
+              
+              let totalAvg = "0.00";
+              if (hasWo && hasPo) {
+                totalAvg = ((woVal + poVal) / 2).toFixed(2);
+              } else if (hasWo) {
+                totalAvg = woVal.toFixed(2);
+              } else if (hasPo) {
+                totalAvg = poVal.toFixed(2);
+              }
               
               return (
                 <tr key={i} className="table-row h-[40px] border-b border-gray-50/50 last:border-0">

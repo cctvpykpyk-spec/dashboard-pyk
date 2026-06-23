@@ -13,14 +13,9 @@ export const ULPStatsCard: React.FC<ULPStatsCardProps> = ({ ulpData, onDetailCli
   // Define the specific order from spreadsheet or fallback
   const requestedOrder = ulpList && ulpList.length > 0 ? ulpList : [
     "PAYAKUMBUH",
-    "SIJUNJUNG",
-    "SAWAHLUNTO",
-    "SILUNGKANG",
-    "MUARALABUH",
-    "SITIUNG",
-    "SINGKARAK",
-    "KAYUARO",
-    "SUNGAIRUMBAI"
+    "BATUSANGKAR",
+    "LIMAPULUH",
+    "LINTAU"
   ];
 
   // Map data to the requested order, handling potential missing data

@@ -23,6 +23,12 @@ export interface DashboardData {
     totalPoCctv: number;
     lastSync: string;
     dataAktif: number;
+    cctvRowsCount: number;
+    cctvLastDate: string;
+    woRowsCount: number;
+    woLastDate: string;
+    poRowsCount: number;
+    poLastDate: string;
   };
   allUlps: string[];
   allPoskos: string[];
@@ -32,8 +38,8 @@ export interface DashboardData {
   rawPoRows: any[][];
   woHeaders: string[];
   poHeaders: string[];
-  woIndices: { name: number; ulp: number; cctv: number; tglLapor: number; tglPengerjaan: number; tglSelesai: number; source: number; reporter: number; shift: number; rpt: number; rct: number };
-  poIndices: { name: number; ulp: number; cctv: number };
+  woIndices: { name: number; ulp: number; cctv: number; tglLapor: number; tglPengerjaan: number; tglSelesai: number; source: number; reporter: number; shift: number; rpt: number; rct: number; apktNo?: number };
+  poIndices: { name: number; ulp: number; cctv: number; id?: number };
 }
 
 export interface OverSLAData {

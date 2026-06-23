@@ -48,33 +48,102 @@ export default function App() {
   const filteredData = React.useMemo(() => {
     if (!data) return null;
     
+    const getAvg = (item: any) => {
+      const woVal = parseFloat(item.persenWo) || 0;
+      const poVal = parseFloat(item.persenPo) || 0;
+      const hasWo = (item.jumlahWoTotal || 0) > 0;
+      const hasPo = (item.jumlahPoTotal || 0) > 0;
+      if (hasWo && hasPo) return (woVal + poVal) / 2;
+      if (hasWo) return woVal;
+      if (hasPo) return poVal;
+      return 0;
+    };
+
+    const cleanUlp = (name: any) => {
+      if (!name) return "";
+      return String(name).toUpperCase()
+        .replace(/^POSKO ULP\s+/i, "")
+        .replace(/^ULP\s+/i, "")
+        .replace(/^POSKO\s+/i, "")
+        .replace(/\s+/g, "")
+        .trim();
+    };
+
+    const targetUlp = selectedUlp ? cleanUlp(selectedUlp) : "";
+
+    const filteredTotalWoPlnMobileList = selectedUlp
+      ? data.rating.totalWoPlnMobileList.filter(row => cleanUlp(row[3]) === targetUlp)
+      : data.rating.totalWoPlnMobileList;
+
+    const filteredRating5List = selectedUlp
+      ? data.rating.rating5List.filter(row => cleanUlp(row[3]) === targetUlp)
+      : data.rating.rating5List;
+
+    const filteredRating34List = selectedUlp
+      ? data.rating.rating34List.filter(row => cleanUlp(row[3]) === targetUlp)
+      : data.rating.rating34List;
+
+    const filteredRating12List = selectedUlp
+      ? data.rating.rating12List.filter(row => cleanUlp(row[3]) === targetUlp)
+      : data.rating.rating12List;
+
+    const filteredNoRatingList = selectedUlp
+      ? data.rating.noRatingList.filter(row => cleanUlp(row[3]) === targetUlp)
+      : data.rating.noRatingList;
+
+    const totalWoPlnMobile = filteredTotalWoPlnMobileList.length;
+    const rating5 = filteredRating5List.length;
+    const rating34 = filteredRating34List.length;
+    const rating12 = filteredRating12List.length;
+    const noRating = filteredNoRatingList.length;
+
     return {
       ...data,
       ulpPerformance: (selectedUlp 
         ? data.ulpPerformance.filter(u => u.ulp === selectedUlp)
         : data.ulpPerformance
-      ).sort((a, b) => {
-        const avgA = (parseFloat(a.persenWo) || 0) + (parseFloat(a.persenPo) || 0);
-        const avgB = (parseFloat(b.persenWo) || 0) + (parseFloat(b.persenPo) || 0);
-        return avgB - avgA;
-      }),
+      ).sort((a, b) => getAvg(b) - getAvg(a)),
       officerPerformance: (selectedUlp
         ? data.officerPerformance.filter(o => o.ulp === selectedUlp)
         : data.officerPerformance
-      ).sort((a, b) => {
-        const avgA = (parseFloat(a.persenWo) || 0) + (parseFloat(a.persenPo) || 0);
-        const avgB = (parseFloat(b.persenWo) || 0) + (parseFloat(b.persenPo) || 0);
-        return avgB - avgA;
-      }),
+      ).sort((a, b) => getAvg(b) - getAvg(a)),
       summary: data.summary,
       rating: {
         ...data.rating,
+        totalWoPlnMobile,
+        rating5,
+        rating34,
+        rating12,
+        noRating,
+        totalWoPlnMobileList: filteredTotalWoPlnMobileList,
+        rating5List: filteredRating5List,
+        rating34List: filteredRating34List,
+        rating12List: filteredRating12List,
+        noRatingList: filteredNoRatingList,
         officerRatings: selectedUlp
-          ? data.rating.officerRatings.filter(o => o.ulp === selectedUlp)
-          : data.rating.officerRatings
+          ? data.rating.officerRatings.filter(o => cleanUlp(o.ulp) === targetUlp)
+          : data.rating.officerRatings,
+        kpRatings: selectedUlp
+          ? data.rating.kpRatings.filter(k => cleanUlp(k.ulp) === targetUlp)
+          : data.rating.kpRatings,
+        ulpRatings: selectedUlp
+          ? data.rating.ulpRatings.filter(u => cleanUlp(u.namaUlp) === targetUlp)
+          : data.rating.ulpRatings
       }
     };
   }, [data, selectedUlp]);
+
+  const dynamicDataAktif = React.useMemo(() => {
+    if (!filteredData) return 0;
+    if (activeTab === 'CCTV') {
+      return (filteredData.summary.totalBaca || 0) + (filteredData.summary.totalPo || 0);
+    } else if (activeTab === 'OVER_SLA') {
+      return filteredData.overSla.totalGangguan || 0;
+    } else if (activeTab === 'RATING') {
+      return filteredData.rating.totalWoPlnMobile || 0;
+    }
+    return 0;
+  }, [filteredData, activeTab]);
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -92,6 +161,20 @@ export default function App() {
   const handleDetailClick = (type: 'WO' | 'PO', identifier: string, isUlp: boolean, isCctv: boolean) => {
     if (!data) return;
 
+    const cleanUlp = (name: any) => {
+      if (!name) return "";
+      return String(name).toUpperCase()
+        .replace(/^POSKO ULP\s+/i, "")
+        .replace(/^ULP\s+/i, "")
+        .replace(/^POSKO\s+/i, "")
+        .replace(/\s+/g, "")
+        .trim();
+    };
+
+    const cleanName = (str: any) => {
+      return String(str || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    };
+
     const headers = type === 'WO' ? data.woHeaders : data.poHeaders;
     const rawRows = type === 'WO' ? data.rawWoRows : data.rawPoRows;
     const indices = type === 'WO' ? data.woIndices : data.poIndices;
@@ -99,7 +182,7 @@ export default function App() {
     // Build officer to ULP map for fallback
     const officerToUlpMap = new Map<string, string>();
     data.officerPerformance.forEach(op => {
-      officerToUlpMap.set(op.name.toLowerCase().trim(), op.ulp.toUpperCase().trim());
+      officerToUlpMap.set(cleanName(op.name), cleanUlp(op.ulp));
     });
 
     let filteredRows = rawRows;
@@ -116,23 +199,23 @@ export default function App() {
     if (identifier === "UP3" || identifier === "ALL") {
       setModalTitle(`DETAIL DATA ${type}${isCctv ? ' (CCTV)' : ''} - UP3 PAYAKUMBUH`);
     } else if (isUlp) {
-      const targetUlp = identifier.toUpperCase().trim();
+      const targetUlp = cleanUlp(identifier);
       filteredRows = filteredRows.filter(row => {
         let rowUlp = "";
         if (indices.ulp !== -1 && row[indices.ulp]) {
-          rowUlp = String(row[indices.ulp]).toUpperCase().replace(/^POSKO ULP\s+/i, '').trim();
+          rowUlp = cleanUlp(row[indices.ulp]);
         } else {
           // Fallback to officer mapping
-          const rowName = String(row[indices.name] || '').toLowerCase().trim();
+          const rowName = cleanName(row[indices.name]);
           rowUlp = officerToUlpMap.get(rowName) || "";
         }
         return rowUlp === targetUlp;
       });
       setModalTitle(`DETAIL DATA ${type}${isCctv ? ' (CCTV)' : ''} - ULP: ${identifier}`);
     } else {
-      const targetName = identifier.toLowerCase().trim();
+      const targetName = cleanName(identifier);
       filteredRows = filteredRows.filter(row => {
-        const rowName = String(row[indices.name] || '').toLowerCase().trim();
+        const rowName = cleanName(row[indices.name]);
         return rowName === targetName;
       });
       setModalTitle(`DETAIL DATA ${type}${isCctv ? ' (CCTV)' : ''} - PETUGAS: ${identifier}`);
@@ -141,7 +224,7 @@ export default function App() {
     // 3. De-duplicate filteredRows by unique ID (No Laporan for WO, No Tugas/ID for PO)
     let idIdx = -1;
     if (type === 'WO') {
-      idIdx = indices.apktNo;
+      idIdx = (indices.apktNo !== undefined && indices.apktNo !== null && indices.apktNo !== -1) ? indices.apktNo : -1;
       if (idIdx === -1) {
         idIdx = headers.findIndex(h => {
           const s = String(h || "").toLowerCase();
@@ -149,17 +232,20 @@ export default function App() {
         });
       }
     } else {
-      idIdx = headers.findIndex(h => {
-        const s = String(h || "").toLowerCase();
-        return s.includes("tugas") || s.includes("id");
-      });
+      idIdx = (indices as any).id !== undefined && (indices as any).id !== null && (indices as any).id !== -1 ? (indices as any).id : -1;
+      if (idIdx === -1) {
+        idIdx = headers.findIndex(h => {
+          const s = String(h || "").toLowerCase();
+          return s.includes("tugas") || s.includes("id");
+        });
+      }
       if (idIdx === -1) {
         // Fallback: search for standard poCols[3] position (usually at column index 4)
         idIdx = 4;
       }
     }
 
-    if (idIdx !== -1) {
+    if (idIdx !== undefined && idIdx !== null && idIdx !== -1) {
       const uniqueMap = new Map<string, any[]>();
       filteredRows.forEach(row => {
         if (row.length > idIdx) {
@@ -179,6 +265,20 @@ export default function App() {
 
   const handleOverSLADetailClick = (criteria: string, value?: string) => {
     if (!data) return;
+
+    const cleanUlp = (name: any) => {
+      if (!name) return "";
+      return String(name).toUpperCase()
+        .replace(/^POSKO ULP\s+/i, "")
+        .replace(/^ULP\s+/i, "")
+        .replace(/^POSKO\s+/i, "")
+        .replace(/\s+/g, "")
+        .trim();
+    };
+
+    const cleanName = (str: any) => {
+      return String(str || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    };
 
     const headers = data.woHeaders;
     const rawRows = data.rawWoRows;
@@ -233,13 +333,13 @@ export default function App() {
         break;
       case 'ULP':
         if (value) {
-          const targetUlp = value.toUpperCase().trim();
+          const targetUlp = cleanUlp(value);
           filteredRows = rawRows.filter(row => {
             let rowUlp = "";
             if (indices.ulp !== -1 && row[indices.ulp]) {
-              rowUlp = String(row[indices.ulp]).toUpperCase().replace(/^POSKO ULP\s+/i, '').replace(/^ULP\s+/i, '').trim();
+              rowUlp = cleanUlp(row[indices.ulp]);
             }
-            return rowUlp === targetUlp || String(row[indices.name] || '').toUpperCase().includes(targetUlp);
+            return rowUlp === targetUlp || cleanName(row[indices.name]).includes(targetUlp);
           });
           title = `DETAIL DATA WO - ULP: ${value}`;
         }
@@ -356,7 +456,13 @@ export default function App() {
       />
       <SubHeader 
         lastSync={data.summary.lastSync} 
-        dataAktif={data.summary.dataAktif} 
+        dataAktif={dynamicDataAktif} 
+        cctvRowsCount={data.summary.cctvRowsCount || 0}
+        cctvLastDate={data.summary.cctvLastDate || "-"}
+        woRowsCount={data.summary.woRowsCount || 0}
+        woLastDate={data.summary.woLastDate || "-"}
+        poRowsCount={data.summary.poRowsCount || 0}
+        poLastDate={data.summary.poLastDate || "-"}
         selectedUlp={selectedUlp}
         onUlpChange={setSelectedUlp}
         ulpList={filterList}

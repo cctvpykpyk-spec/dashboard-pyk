@@ -436,108 +436,117 @@ export const RatingPage: React.FC<RatingPageProps> = ({ data }) => {
               </div>
               <h3 className="text-sm font-black italic tracking-tighter uppercase leading-none">PERSENTASE PO PER UNIT (ULP)</h3>
             </div>
-            <div className="flex-1 p-4">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <defs>
-                    {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'].map((color, index) => (
-                      <linearGradient key={`grad-${index}`} id={`grad-${index}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={color} stopOpacity={1}/>
-                        <stop offset="95%" stopColor={['#1d4ed8', '#047857', '#b45309', '#b91c1c', '#6d28d9', '#be185d', '#0e7490'][index]} stopOpacity={1}/>
-                      </linearGradient>
-                    ))}
-                  </defs>
-                  {/* Shadow layer for 3D effect */}
-                  <Pie
-                    data={rating.ulpRatings.map(ulp => ({
-                      name: ulp.namaUlp,
-                      value: ulp.totalWoPlnMobile
-                    }))}
-                    cx="50%"
-                    cy="53%"
-                    innerRadius={0}
-                    outerRadius="80%"
-                    paddingAngle={2}
-                    dataKey="value"
-                    stroke="none"
-                    isAnimationActive={false}
-                    legendType="none"
-                  >
-                    {rating.ulpRatings.map((_, index) => (
-                      <Cell 
-                        key={`cell-shadow-${index}`} 
-                        fill={['#1e3a8a', '#064e3b', '#78350f', '#7f1d1d', '#4c1d95', '#831843', '#164e63'][index % 7]} 
-                      />
-                    ))}
-                  </Pie>
-                  {/* Main layer */}
-                  <Pie
-                    data={rating.ulpRatings.map(ulp => ({
-                      name: ulp.namaUlp,
-                      value: ulp.totalWoPlnMobile
-                    }))}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={0}
-                    outerRadius="80%"
-                    paddingAngle={2}
-                    dataKey="value"
-                    label={({ name, percent, cx, cy, midAngle, outerRadius }: any) => {
-                      const RADIAN = Math.PI / 180;
-                      const isRight = Math.cos(-midAngle * RADIAN) > 0;
-                      const radius = typeof outerRadius === 'string' ? 60 : outerRadius + 10;
-                      const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                      const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                      
-                      return (
-                        <text 
-                          x={x} 
-                          y={y} 
-                          fill="#1e293b" 
-                          textAnchor={isRight ? 'start' : 'end'} 
-                          dominantBaseline="central"
-                          className="text-[8px] font-black uppercase tracking-tighter"
-                        >
-                          {`${name} ${(percent * 100).toFixed(0)}%`}
-                        </text>
-                      );
-                    }}
-                    labelLine={{ stroke: '#64748b', strokeWidth: 1 }}
-                  >
-                    {rating.ulpRatings.map((_, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={`url(#grad-${index % 7})`}
-                        stroke="#fff"
-                        strokeWidth={1}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(255, 255, 255, 0.96)', 
-                      borderRadius: '12px', 
-                      border: '1px solid #e2e8f0', 
-                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                      fontSize: '11px',
-                      fontWeight: '800',
-                      textTransform: 'uppercase'
-                    }} 
-                  />
-                  <Legend 
-                    verticalAlign="bottom" 
-                    height={36} 
-                    iconType="circle"
-                    wrapperStyle={{ 
-                      fontSize: '10px', 
-                      fontWeight: '900', 
-                      textTransform: 'uppercase',
-                      marginTop: '30px',
-                      paddingTop: '10px'
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="flex-1 p-4 min-h-[350px] flex items-center justify-center">
+              {rating.ulpRatings && rating.ulpRatings.length > 0 && rating.ulpRatings.some(ulp => ulp.totalWoPlnMobile > 0) ? (
+                <ResponsiveContainer width="100%" height={320}>
+                  <PieChart>
+                    <defs>
+                      {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'].map((color, index) => (
+                        <linearGradient key={`grad-${index}`} id={`grad-${index}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={color} stopOpacity={1}/>
+                          <stop offset="95%" stopColor={['#1d4ed8', '#047857', '#b45309', '#b91c1c', '#6d28d9', '#be185d', '#0e7490'][index]} stopOpacity={1}/>
+                        </linearGradient>
+                      ))}
+                    </defs>
+                    {/* Shadow layer for 3D effect */}
+                    <Pie
+                      data={rating.ulpRatings.map(ulp => ({
+                        name: ulp.namaUlp,
+                        value: ulp.totalWoPlnMobile
+                      }))}
+                      cx="50%"
+                      cy="53%"
+                      innerRadius={0}
+                      outerRadius="80%"
+                      paddingAngle={2}
+                      dataKey="value"
+                      stroke="none"
+                      isAnimationActive={false}
+                      legendType="none"
+                    >
+                      {rating.ulpRatings.map((_, index) => (
+                        <Cell 
+                          key={`cell-shadow-${index}`} 
+                          fill={['#1e3a8a', '#064e3b', '#78350f', '#7f1d1d', '#4c1d95', '#831843', '#164e63'][index % 7]} 
+                        />
+                      ))}
+                    </Pie>
+                    {/* Main layer */}
+                    <Pie
+                      data={rating.ulpRatings.map(ulp => ({
+                        name: ulp.namaUlp,
+                        value: ulp.totalWoPlnMobile
+                      }))}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={0}
+                      outerRadius="80%"
+                      paddingAngle={2}
+                      dataKey="value"
+                      label={({ name, percent, cx, cy, midAngle, outerRadius }: any) => {
+                        const RADIAN = Math.PI / 180;
+                        const isRight = Math.cos(-midAngle * RADIAN) > 0;
+                        const radius = typeof outerRadius === 'string' ? 60 : outerRadius + 10;
+                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                        
+                        return (
+                          <text 
+                            x={x} 
+                            y={y} 
+                            fill="#1e293b" 
+                            textAnchor={isRight ? 'start' : 'end'} 
+                            dominantBaseline="central"
+                            className="text-[8px] font-black uppercase tracking-tighter"
+                          >
+                            {`${name} ${(percent * 100).toFixed(0)}%`}
+                          </text>
+                        );
+                      }}
+                      labelLine={{ stroke: '#64748b', strokeWidth: 1 }}
+                    >
+                      {rating.ulpRatings.map((_, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={`url(#grad-${index % 7})`}
+                          stroke="#fff"
+                          strokeWidth={1}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(255, 255, 255, 0.96)', 
+                        borderRadius: '12px', 
+                        border: '1px solid #e2e8f0', 
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                        fontSize: '11px',
+                        fontWeight: '800',
+                        textTransform: 'uppercase'
+                      }} 
+                    />
+                    <Legend 
+                      verticalAlign="bottom" 
+                      height={36} 
+                      iconType="circle"
+                      wrapperStyle={{ 
+                        fontSize: '10px', 
+                        fontWeight: '900', 
+                        textTransform: 'uppercase',
+                        marginTop: '30px',
+                        paddingTop: '10px'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-gray-400 font-bold uppercase tracking-widest text-[11px] text-center max-w-xs flex flex-col gap-2">
+                  <span>Tidak ada data ULP rating PLN Mobile</span>
+                  <span className="text-[9px] font-medium text-gray-400 uppercase tracking-wider leading-normal">
+                    DATA PO AKAN MUNCUL SETELAH DISINKRONKAN DENGAN GOOGLE SPREADSHEETS
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

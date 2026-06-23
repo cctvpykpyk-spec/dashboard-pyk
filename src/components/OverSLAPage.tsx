@@ -122,62 +122,76 @@ export const OverSLAPage: React.FC<OverSLAPageProps> = ({ data, onDetailClick })
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-12 bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex flex-col md:flex-row gap-8">
           {/* ULP Bar Chart */}
-          <div className="flex-1 min-h-[300px]">
+          <div className="flex-1 min-h-[300px] flex flex-col">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-1.5 h-6 bg-brand-secondary rounded-full" />
               <h3 className="text-sm font-black italic tracking-tighter text-brand-primary uppercase">
                 JUMLAH WO OVER <span className="text-brand-secondary">SLA MENURUT ULP</span>
               </h3>
             </div>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={data.ulpDistribution} layout="vertical" margin={{ left: -20, right: 30 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.05} />
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" width={100} fontSize={9} stroke="#888" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
-                />
-                <Bar 
-                  dataKey="value" 
-                  fill="#26C6DA" 
-                  radius={[0, 4, 4, 0]} 
-                  label={{ position: 'right', fontSize: 10, fill: '#444', fontWeight: 'bold' }} 
-                  onClick={handleBarClick}
-                  style={{ cursor: 'pointer' }}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="flex-1 min-h-[250px] flex items-center justify-center">
+              {data.ulpDistribution && data.ulpDistribution.length > 0 && data.ulpDistribution.some(u => u.value > 0) ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={data.ulpDistribution} layout="vertical" margin={{ left: -20, right: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.05} />
+                    <XAxis type="number" hide />
+                    <YAxis dataKey="name" type="category" width={100} fontSize={9} stroke="#888" />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
+                    />
+                    <Bar 
+                      dataKey="value" 
+                      fill="#26C6DA" 
+                      radius={[0, 4, 4, 0]} 
+                      label={{ position: 'right', fontSize: 10, fill: '#444', fontWeight: 'bold' }} 
+                      onClick={handleBarClick}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-gray-400 font-bold uppercase tracking-widest text-[11px] text-center">
+                  Tidak ada sebaran data over SLA per ULP
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Shift Pie Chart */}
-          <div className="w-full md:w-1/3 min-h-[300px] border-l border-gray-50 pl-0 md:pl-8">
+          <div className="w-full md:w-1/3 min-h-[300px] border-l border-gray-50 pl-0 md:pl-8 flex flex-col">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-1.5 h-6 bg-[#FFD700] rounded-full" />
               <h3 className="text-sm font-black italic tracking-tighter text-brand-primary uppercase">
                 SEBARAN <span className="text-[#FFD700]">PER SHIFT</span>
               </h3>
             </div>
-            <div className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={data.shiftDistribution}
-                    innerRadius={50}
-                    outerRadius={70}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {data.shiftDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  />
-                  <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '9px' }} />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="flex-1 min-h-[200px] flex items-center justify-center">
+              {data.shiftDistribution && data.shiftDistribution.length > 0 && data.shiftDistribution.some(s => s.value > 0) ? (
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={data.shiftDistribution}
+                      innerRadius={50}
+                      outerRadius={70}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {data.shiftDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '9px' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-gray-400 font-bold uppercase tracking-widest text-[11px] text-center">
+                  Tidak ada data shift
+                </div>
+              )}
             </div>
             <div className="mt-4 pt-4 border-t border-gray-50 text-center">
               <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Total WO</span>

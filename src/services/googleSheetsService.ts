@@ -2,7 +2,7 @@ import { DashboardData, OfficerPerformance, CCTVUsage, OfficerRating, KPRating, 
 import Papa from "papaparse";
 
 export class GoogleSheetsService {
-  private static SPREADSHEET_ID = "1EUc3oQHoF9RCoeRoMwJMg0WHO8BVzK0oU4AmoDvYM94";
+  private static SPREADSHEET_ID = "1CpVQOK7Ldhe7bgXmBbVKj07qCtETERqutP87pNi-bkk";
   private static petugasCache: any[][] | null = null;
   private static ulpCache: any[][] | null = null;
   
@@ -51,7 +51,7 @@ export class GoogleSheetsService {
           continue;
         }
 
-        return new Promise((resolve, reject) => {
+        const parsed = await new Promise<any[][]>((resolve, reject) => {
           Papa.parse(csvText, {
             header: false,
             skipEmptyLines: true,
@@ -65,6 +65,7 @@ export class GoogleSheetsService {
             error: (error: any) => reject(error),
           });
         });
+        return parsed;
       } catch (error) {
         // Silent error
       }
@@ -233,8 +234,8 @@ export class GoogleSheetsService {
         } else if (t === "tgl lap") {
           idx = row.findIndex(h => h === "tgl lap" || h.includes("tgl lap"));
         } else if (t === "tgl") {
-          idx = row.indexOf("tgl");
-          if (idx === -1) idx = row.findIndex(h => h === "tgl");
+          idx = row.findIndex(h => h === "tgl" || h === "tanggal" || h.includes("tanggal") || h.includes("date") || h.includes("tgl"));
+          if (idx === -1) idx = row.indexOf("tgl");
         } else if (t === "tanggal") {
           idx = row.findIndex(h => h === "tanggal" || h.includes("tanggal") || h.includes("date") || h.includes("tgl"));
         } else if (t === "no laporan" || t === "no tugas") {
@@ -287,7 +288,7 @@ export class GoogleSheetsService {
 
   private static isValidRegu(ulpName: string, reguValue: string): boolean {
     const ulpToReguMap: Record<string, string> = {
-      "SOLOK": "SOLOK",
+      "PAYAKUMBUH": "PAYAKUMBUH",
       "SIJUNJUNG": "SIJUNJUNG",
       "SAWAHLUNTO": "SAWAH LUNTO",
       "SILUNGKANG": "SILUNGKANG",
@@ -306,7 +307,7 @@ export class GoogleSheetsService {
 
   static async triggerAppsScriptSync(): Promise<boolean> {
     try {
-      const url = (import.meta as any).env.VITE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwO9RXhZRBv-bF5RiR7Rst4jul8xTjdkWbjzEeI_zaWKwOgRNBguNtE2a5p45EbwRN8VQ/exec";
+      const url = (import.meta as any).env?.VITE_APPS_SCRIPT_URL || "https://script.google.com/macros/s/AKfycbwO9RXhZRBv-bF5RiR7Rst4jul8xTjdkWbjzEeI_zaWKwOgRNBguNtE2a5p45EbwRN8VQ/exec";
       await fetch(url, { method: "GET", mode: "no-cors", cache: "no-store" });
       return true;
     } catch (error) {
@@ -322,28 +323,6 @@ export class GoogleSheetsService {
       this.ulpCache = null;
       this.dateFilteredCache = null;
     }
-
-    const ALLOWED_REGUS = ["SOLOK", "SIJUNJUNG", "SAWAH LUNTO", "SILUNGKANG", "MUARA LABUH", "SITIUNG", "SINGKARAK", "KAYU ARO", "SUNGAI RUMBAI"];
-    const ALLOWED_REGUS_NORMALIZED = ALLOWED_REGUS.map(x => x.replace(/\s+/g, "").toUpperCase());
-    const isUp3Regu = (r: string) => {
-      if (!r) return false;
-      const standardized = r.toUpperCase()
-        .replace(/^POSKO ULP\s+/i, "")
-        .replace(/^ULP\s+/i, "")
-        .replace(/^POSKO\s+/i, "")
-        .replace(/\s+/g, "")
-        .trim();
-      return ALLOWED_REGUS_NORMALIZED.includes(standardized);
-    };
-
-    const standardizeUlpName = (name: string) => {
-      if (!name) return "";
-      return name.toUpperCase()
-        .replace(/^POSKO ULP\s+/i, "")
-        .replace(/^ULP\s+/i, "")
-        .replace(/^POSKO\s+/i, "")
-        .trim();
-    };
 
     const allRegusInUlp = new Map<string, Set<string>>(); // ULP -> Set of Regus
 
@@ -387,8 +366,7 @@ export class GoogleSheetsService {
       }
     }
 
-
-    // 1. Get ULP, POSKO and Petugas data for mapping
+    const dynamicUlpsList: string[] = [];
     const ulpMap = new Map<string, string>();
     const { headerRowIdx: ulpHeaderIdx, colIndices: ulpCols } = this.findHeaderAndCols(ulpRows, ["id", "name"]);
     if (ulpCols[0] !== -1 && ulpCols[1] !== -1) {
@@ -399,15 +377,72 @@ export class GoogleSheetsService {
       });
     }
 
+    if (ulpCols[1] !== -1) {
+      ulpRows.slice(ulpHeaderIdx + 1).forEach(row => {
+        const name = String(row[ulpCols[1]] || "").trim();
+        if (name && name.toLowerCase() !== "name" && name.toLowerCase() !== "nama") {
+          const uNameCap = name.toUpperCase()
+            .replace(/^POSKO ULP\s+/i, "")
+            .replace(/^ULP\s+/i, "")
+            .replace(/^POSKO\s+/i, "")
+            .trim();
+          if (uNameCap && !dynamicUlpsList.includes(uNameCap)) {
+            dynamicUlpsList.push(uNameCap);
+          }
+        }
+      });
+    }
+
+    const ULP_LIST_FROM_SHEET = dynamicUlpsList.length > 0 
+      ? dynamicUlpsList 
+      : ["PAYAKUMBUH", "SIJUNJUNG", "SAWAHLUNTO", "SILUNGKANG", "MUARALABUH", "SITIUNG", "SINGKARAK", "KAYUARO", "SUNGAIRUMBAI"];
+
+    const ALLOWED_REGUS = ULP_LIST_FROM_SHEET;
+    const ALLOWED_REGUS_NORMALIZED = ALLOWED_REGUS.map(x => x.replace(/\s+/g, "").toUpperCase());
+    
+    // Parse Poskos directly from the POSKO sheet
+    const dynamicPoskosList: string[] = [];
     const poskoToUlpIdMap = new Map<string, string>();
     const { headerRowIdx: poskoHeaderIdx, colIndices: poskoCols } = this.findHeaderAndCols(poskoRows, ["posko", "poskoid", "ulp_id"]);
     if (poskoCols[0] !== -1) {
       poskoRows.slice(poskoHeaderIdx + 1).forEach(row => {
-        const poskoName = this.normalizeForMatch(String(row[poskoCols[0]] || ""));
+        const poskoRawName = String(row[poskoCols[0]] || "").trim();
+        const poskoName = this.normalizeForMatch(poskoRawName);
         const ulpId = String(row[poskoCols[1]] !== undefined ? row[poskoCols[1]] : (row[poskoCols[2]] || "")).trim();
         if (poskoName && ulpId) poskoToUlpIdMap.set(poskoName, ulpId);
+
+        if (poskoRawName && poskoRawName.toLowerCase() !== "posko" && !poskoRawName.toLowerCase().includes("nama")) {
+          const pNameCap = poskoRawName.toUpperCase()
+            .replace(/^POSKO ULP\s+/i, "")
+            .replace(/^ULP\s+/i, "")
+            .replace(/^POSKO\s+/i, "")
+            .trim();
+          if (pNameCap && !dynamicPoskosList.includes(pNameCap)) {
+            dynamicPoskosList.push(pNameCap);
+          }
+        }
       });
     }
+
+    const isUp3Regu = (r: string) => {
+      if (!r) return false;
+      const standardized = r.toUpperCase()
+        .replace(/^POSKO ULP\s+/i, "")
+        .replace(/^ULP\s+/i, "")
+        .replace(/^POSKO\s+/i, "")
+        .replace(/\s+/g, "")
+        .trim();
+      return ALLOWED_REGUS_NORMALIZED.includes(standardized);
+    };
+
+    const standardizeUlpName = (name: string) => {
+      if (!name) return "";
+      return name.toUpperCase()
+        .replace(/^POSKO ULP\s+/i, "")
+        .replace(/^ULP\s+/i, "")
+        .replace(/^POSKO\s+/i, "")
+        .trim();
+    };
 
     const { headerRowIdx: petugasHeaderIdx, colIndices: petugasCols } = this.findHeaderAndCols(petugasRows, ["name", "ulpId", "ulp"]);
     const officers: { name: string; ulpId: string; directUlp: string }[] = [];
@@ -425,17 +460,16 @@ export class GoogleSheetsService {
     const getCanonicalUlpName = (name: string) => {
       if (!name) return "";
       const u = name.toUpperCase().trim();
-      if (u.includes("SOLOK")) return "SOLOK";
-      if (u.includes("SIJUNJUNG")) return "SIJUNJUNG";
-      if (u.includes("SAWAHLUNTO") || u.includes("SAWAH LUNTO")) return "SAWAH LUNTO";
-      if (u.includes("SILUNGKANG")) return "SILUNGKANG";
-      if (u.includes("MUARALABUH") || u.includes("MUARA LABUH")) return "MUARA LABUH";
-      if (u.includes("SITIUNG")) return "SITIUNG";
-      if (u.includes("SINGKARAK")) return "SINGKARAK";
-      if (u.includes("KAYU ARO") || u.includes("KAYUARO")) return "KAYU ARO";
-      if (u.includes("SUNGAI RUMBAI") || u.includes("SUNGAIRUMBAI")) return "SUNGAI RUMBAI";
+      const normalizedU = u.replace(/\s+/g, "");
+      
+      for (const su of ULP_LIST_FROM_SHEET) {
+        const normalizedSu = su.replace(/\s+/g, "");
+        if (u.includes(su) || normalizedU.includes(normalizedSu) || normalizedSu.includes(normalizedU)) {
+          return su;
+        }
+      }
       return name;
-    }
+    };
 
     const officerToUlp = new Map<string, string>();
     const officerToName = new Map<string, string>();
@@ -448,9 +482,8 @@ export class GoogleSheetsService {
       officerToName.set(nKey, o.name);
     });
 
-    // Determine official ULPs list beforehand for REGEX-style matching
-    const allUlpsOrder = ["SOLOK", "SIJUNJUNG", "SAWAH LUNTO", "SILUNGKANG", "MUARA LABUH", "SITIUNG", "SINGKARAK", "KAYU ARO", "SUNGAI RUMBAI"];
-    const allUlps = Array.from(new Set(officers.map(o => {
+    const allUlpsOrder = ULP_LIST_FROM_SHEET;
+    let allUlps = Array.from(new Set(officers.map(o => {
       let ulpName = (ulpMap.get(o.ulpId) || o.directUlp || "Unknown");
       let standardized = standardizeUlpName(ulpName);
       return getCanonicalUlpName(standardized);
@@ -464,18 +497,12 @@ export class GoogleSheetsService {
       return a.localeCompare(b);
     });
 
+    if (allUlps.length === 0) {
+      allUlps = ULP_LIST_FROM_SHEET;
+    }
+
     const getExpectedRegu = (ulpName: string) => {
-      const u = ulpName.toUpperCase().trim();
-      if (u.includes("SOLOK")) return "SOLOK";
-      if (u.includes("SIJUNJUNG")) return "SIJUNJUNG";
-      if (u.includes("SAWAHLUNTO") || u.includes("SAWAH LUNTO")) return "SAWAH LUNTO";
-      if (u.includes("SILUNGKANG")) return "SILUNGKANG";
-      if (u.includes("MUARALABUH") || u.includes("MUARA LABUH")) return "MUARA LABUH";
-      if (u.includes("SITIUNG")) return "SITIUNG";
-      if (u.includes("SINGKARAK")) return "SINGKARAK";
-      if (u.includes("KAYU ARO") || u.includes("KAYUARO")) return "KAYU ARO";
-      if (u.includes("SUNGAI RUMBAI") || u.includes("SUNGAIRUMBAI")) return "SUNGAI RUMBAI";
-      return u;
+      return getCanonicalUlpName(ulpName);
     };
 
     // 2. Date ranges
@@ -666,6 +693,9 @@ export class GoogleSheetsService {
 
       // Format date/time columns for raw output
       const rowToProcess = [...row];
+      if (woNameIdx !== -1 && woNameIdx < rowToProcess.length) {
+        rowToProcess[woNameIdx] = properName;
+      }
       dateTimeIndices.forEach(idx => {
         if (idx < rowToProcess.length) {
           const val = String(rowToProcess[idx] || "").trim();
@@ -677,10 +707,10 @@ export class GoogleSheetsService {
       });
 
       // Performance stats (count all reports as requested)
-      const nameKeyForRaw = this.cleanName(nameRaw);
-      if (nameKeyForRaw && nameKeyForRaw !== "NAMAPETUGAS" && nameKeyForRaw !== "NAME") {
-        const raw = officerWoRawStats.get(nameKeyForRaw) || { total: 0, cctv: 0 };
-        officerWoRawStats.set(nameKeyForRaw, { total: raw.total + 1, cctv: raw.cctv + (isCctv ? 1 : 0) });
+      const nameKeyForProper = this.cleanName(properName);
+      if (nameKeyForProper && nameKeyForProper !== "NAMAPETUGAS" && nameKeyForProper !== "NAME") {
+        const raw = officerWoRawStats.get(nameKeyForProper) || { total: 0, cctv: 0 };
+        officerWoRawStats.set(nameKeyForProper, { total: raw.total + 1, cctv: raw.cctv + (isCctv ? 1 : 0) });
       }
 
       // Add to Over SLA RPT list (include duplicates for the table specifically)
@@ -770,7 +800,7 @@ export class GoogleSheetsService {
     const kpRatingStats = new Map<string, { totalWo: number; r5: number; r34: number; r12: number; noR: number; ulp: string; reguName: string; }>();
 
     const filteredWoRows: any[][] = [];
-    const allPoskosSet = new Set<string>();
+    const allPoskosSet = new Set<string>(dynamicPoskosList);
 
     let highestRpt = 0, highestRct = 0, totalRpt = 0, totalRct = 0, rptCount = 0, rctCount = 0;
     // woOverSlaRptList, officerRptOverSlaCount, officerRctOverSlaCount are now populated in the first pass
@@ -932,6 +962,9 @@ export class GoogleSheetsService {
       const nameKey = this.cleanName(row[poNameIdx]);
       if (!nameKey || nameKey === "NAMAPETUGAS" || nameKey === "NAME") return;
       
+      const properName = officerToName.get(nameKey) || String(row[poNameIdx] || "").trim();
+      const nameKeyForProper = this.cleanName(properName);
+      
       const poPoskoValue = poPoskoIdx !== -1 ? String(row[poPoskoIdx] || "").trim() : "";
       const normalizedPoPosko = this.normalizeForMatch(poPoskoValue);
       const poskoidFromPoMapping = poskoToUlpIdMap.get(normalizedPoPosko);
@@ -970,7 +1003,11 @@ export class GoogleSheetsService {
       const isCctv = cctvVal.includes("CCTV");
 
       if (isUp3 && isFilteredForCctvTab && targetUlp) {
-        filteredPoRows.push([...row]);
+        const poRowProcessed = [...row];
+        if (poNameIdx !== -1 && poNameIdx < poRowProcessed.length) {
+          poRowProcessed[poNameIdx] = properName;
+        }
+        filteredPoRows.push(poRowProcessed);
         globalPoTasks.set(taskId, (globalPoTasks.get(taskId) || false) || isCctv);
       }
       
@@ -979,24 +1016,27 @@ export class GoogleSheetsService {
         ulpPoTasks.get(targetUlp)!.set(taskId, (ulpPoTasks.get(targetUlp)!.get(taskId) || false) || isCctv);
       }
 
-      if (!officerPoTasks.has(nameKey)) officerPoTasks.set(nameKey, new Map());
-      officerPoTasks.get(nameKey)!.set(taskId, (officerPoTasks.get(nameKey)!.get(taskId) || false) || isCctv);
+      if (!officerPoTasks.has(nameKeyForProper)) officerPoTasks.set(nameKeyForProper, new Map());
+      officerPoTasks.get(nameKeyForProper)!.set(taskId, (officerPoTasks.get(nameKeyForProper)!.get(taskId) || false) || isCctv);
       
-      const raw = officerPoRawStats.get(nameKey) || { total: 0, cctv: 0 };
-      officerPoRawStats.set(nameKey, { total: raw.total + 1, cctv: raw.cctv + (isCctv ? 1 : 0) });
+      const raw = officerPoRawStats.get(nameKeyForProper) || { total: 0, cctv: 0 };
+      officerPoRawStats.set(nameKeyForProper, { total: raw.total + 1, cctv: raw.cctv + (isCctv ? 1 : 0) });
 
       // Add to uniquePoMapForRating for deduplicated rating calculations
       const ratingStr = poRatingIdx !== -1 && poRatingIdx < row.length ? String(row[poRatingIdx] || "").trim() : "";
       const ratingVal = ratingStr === "" || isNaN(parseInt(ratingStr)) ? null : parseInt(ratingStr);
       const sourceRaw = poSourceIdx !== -1 && poSourceIdx < row.length ? String(row[poSourceIdx] || "").trim().toUpperCase() : "";
       const isPlnMobile = sourceRaw.includes("PLN MOBILE") || ratingVal !== null || sourceRaw === "PLN MOBILE" || sourceRaw === "PLN_MOBILE";
-      const properName = nameKey ? (officerToName.get(nameKey) || String(row[poNameIdx] || "").trim()) : String(row[poNameIdx] || "").trim();
       
       const standardizedDisplayPosko = getCanonicalUlpName(standardizeUlpName(poskoName));
       const isWithinUlp = !targetUlpFilter || standardizedDisplayUlp === targetUlpFilter || standardizedDisplayPosko === targetUlpFilter;
 
       const taskIdNormalized = this.normalizeForMatch(taskId);
       if (taskIdNormalized && !uniquePoMapForRating.has(taskIdNormalized)) {
+        const poRowProcessed = [...row];
+        if (poNameIdx !== -1 && poNameIdx < poRowProcessed.length) {
+          poRowProcessed[poNameIdx] = properName;
+        }
         uniquePoMapForRating.set(taskIdNormalized, {
           id: taskId,
           name: properName,
@@ -1010,7 +1050,7 @@ export class GoogleSheetsService {
           isPlnMobile: isPlnMobile,
           regu: cleanRegu,
           isWithinUlp: isWithinUlp,
-          rawRow: [...row]
+          rawRow: poRowProcessed
         });
       }
     });
@@ -1252,7 +1292,7 @@ export class GoogleSheetsService {
         });
         kpRatings.sort((a, b) => b.totalWoPlnMobile - a.totalWoPlnMobile);
 
-        const specificUlps = ["SOLOK", "SIJUNJUNG", "SAWAH LUNTO", "SILUNGKANG", "MUARA LABUH", "SITIUNG", "SINGKARAK", "KAYU ARO", "SUNGAI RUMBAI"];
+        const specificUlps = ULP_LIST_FROM_SHEET;
         const ulpRatingMap = new Map<string, { 
           totalWo: number; r5: number; r34: number; r12: number; noR: number;
         }>();

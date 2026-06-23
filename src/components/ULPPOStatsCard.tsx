@@ -6,20 +6,21 @@ import { formatNumber } from '../lib/utils';
 interface ULPPOStatsCardProps {
   ulpData: ULPPerformance[];
   onDetailClick?: (ulp: string, isCctv: boolean) => void;
+  ulpList?: string[];
 }
 
-export const ULPPOStatsCard: React.FC<ULPPOStatsCardProps> = ({ ulpData, onDetailClick }) => {
-  // Define the specific order requested
-  const requestedOrder = [
-    "SOLOK",
+export const ULPPOStatsCard: React.FC<ULPPOStatsCardProps> = ({ ulpData, onDetailClick, ulpList }) => {
+  // Define the specific order from spreadsheet or fallback
+  const requestedOrder = ulpList && ulpList.length > 0 ? ulpList : [
+    "PAYAKUMBUH",
     "SIJUNJUNG",
-    "SAWAH LUNTO",
+    "SAWAHLUNTO",
     "SILUNGKANG",
-    "MUARA LABUH",
+    "MUARALABUH",
     "SITIUNG",
     "SINGKARAK",
-    "KAYU ARO",
-    "SUNGAI RUMBAI"
+    "KAYUARO",
+    "SUNGAIRUMBAI"
   ];
 
   // Map data to the requested order, handling potential missing data

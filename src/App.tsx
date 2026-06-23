@@ -114,7 +114,7 @@ export default function App() {
 
     // 2. Filter by ULP or Officer
     if (identifier === "UP3" || identifier === "ALL") {
-      setModalTitle(`DETAIL DATA ${type}${isCctv ? ' (CCTV)' : ''} - UP3 SOLOK`);
+      setModalTitle(`DETAIL DATA ${type}${isCctv ? ' (CCTV)' : ''} - UP3 PAYAKUMBUH`);
     } else if (isUlp) {
       const targetUlp = identifier.toUpperCase().trim();
       filteredRows = filteredRows.filter(row => {
@@ -391,6 +391,7 @@ export default function App() {
                   <ULPStatsCard 
                     ulpData={filteredData?.ulpPerformance || []} 
                     onDetailClick={(ulp, isCctv) => handleDetailClick('WO', ulp, true, isCctv)}
+                    ulpList={data?.allUlps || []}
                   />
                 </div>
 
@@ -416,6 +417,7 @@ export default function App() {
                   <ULPPOStatsCard 
                     ulpData={filteredData?.ulpPerformance || []} 
                     onDetailClick={(ulp, isCctv) => handleDetailClick('PO', ulp, true, isCctv)}
+                    ulpList={data?.allUlps || []}
                   />
                 </div>
               </div>
@@ -441,7 +443,7 @@ export default function App() {
 
       <footer className="bg-white border-t border-gray-100 p-4 text-center">
         <p className="text-[10px] font-black text-gray-300 tracking-[0.5em] uppercase">
-          © 2026 PLN ELECTRICITY SERVICES • REGIONAL SUMATERA BARAT • UL SOLOK
+          © 2026 PLN ELECTRICITY SERVICES • REGIONAL SUMATERA BARAT • UL PAYAKUMBUH
         </p>
       </footer>
     </div>

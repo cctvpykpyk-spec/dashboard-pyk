@@ -7,6 +7,7 @@ import { POUP3Card } from './components/POUP3Card.tsx';
 import { ULPPOStatsCard } from './components/ULPPOStatsCard.tsx';
 import { PerformanceTable } from './components/PerformanceTable.tsx';
 import { ULPPerformanceTable } from './components/ULPPerformanceTable.tsx';
+import { ReguPerformanceTable } from './components/ReguPerformanceTable.tsx';
 import { DetailModal } from './components/DetailModal.tsx';
 import { OverSLAPage } from './components/OverSLAPage.tsx';
 import { RatingPage } from './components/RatingPage.tsx';
@@ -103,8 +104,12 @@ export default function App() {
         ? data.ulpPerformance.filter(u => u.ulp === selectedUlp)
         : data.ulpPerformance
       ).sort((a, b) => getAvg(b) - getAvg(a)),
+      reguPerformance: (selectedUlp
+        ? (data.reguPerformance || []).filter(r => cleanUlp(r.ulp) === targetUlp)
+        : (data.reguPerformance || [])
+      ).sort((a, b) => getAvg(b) - getAvg(a)),
       officerPerformance: (selectedUlp
-        ? data.officerPerformance.filter(o => o.ulp === selectedUlp)
+        ? data.officerPerformance.filter(o => cleanUlp(o.ulp) === targetUlp)
         : data.officerPerformance
       ).sort((a, b) => getAvg(b) - getAvg(a)),
       summary: data.summary,
@@ -158,7 +163,7 @@ export default function App() {
     return data.allUlps || [];
   }, [data]);
 
-  const handleDetailClick = (type: 'WO' | 'PO', identifier: string, isUlp: boolean, isCctv: boolean) => {
+  const handleDetailClick = (type: 'WO' | 'PO', identifier: string, filterMode: boolean | 'REGU', isCctv: boolean) => {
     if (!data) return;
 
     const cleanUlp = (name: any) => {
@@ -176,7 +181,10 @@ export default function App() {
     };
 
     const headers = type === 'WO' ? data.woHeaders : data.poHeaders;
-    const rawRows = type === 'WO' ? data.rawWoRows : data.rawPoRows;
+    const useAllRows = filterMode === false || filterMode === 'REGU';
+    const rawRows = type === 'WO'
+      ? (useAllRows ? (data.allWoRows || data.rawWoRows) : data.rawWoRows)
+      : (useAllRows ? (data.allPoRows || data.rawPoRows) : data.rawPoRows);
     const indices = type === 'WO' ? data.woIndices : data.poIndices;
 
     // Build officer to ULP map for fallback
@@ -195,10 +203,18 @@ export default function App() {
       });
     }
 
-    // 2. Filter by ULP or Officer
+    // 2. Filter by ULP, Regu, or Officer
     if (identifier === "UP3" || identifier === "ALL") {
       setModalTitle(`DETAIL DATA ${type}${isCctv ? ' (CCTV)' : ''} - UP3 PAYAKUMBUH`);
-    } else if (isUlp) {
+    } else if (filterMode === 'REGU') {
+      const targetRegu = cleanUlp(identifier);
+      const reguIdx = indices.regu !== undefined ? indices.regu : -1;
+      filteredRows = filteredRows.filter(row => {
+        if (reguIdx === -1 || reguIdx >= row.length) return false;
+        return cleanUlp(row[reguIdx]) === targetRegu;
+      });
+      setModalTitle(`DETAIL DATA ${type}${isCctv ? ' (CCTV)' : ''} - REGU: ${identifier}`);
+    } else if (filterMode === true) {
       const targetUlp = cleanUlp(identifier);
       filteredRows = filteredRows.filter(row => {
         let rowUlp = "";
@@ -221,41 +237,43 @@ export default function App() {
       setModalTitle(`DETAIL DATA ${type}${isCctv ? ' (CCTV)' : ''} - PETUGAS: ${identifier}`);
     }
 
-    // 3. De-duplicate filteredRows by unique ID (No Laporan for WO, No Tugas/ID for PO)
-    let idIdx = -1;
-    if (type === 'WO') {
-      idIdx = (indices.apktNo !== undefined && indices.apktNo !== null && indices.apktNo !== -1) ? indices.apktNo : -1;
-      if (idIdx === -1) {
-        idIdx = headers.findIndex(h => {
-          const s = String(h || "").toLowerCase();
-          return s.includes("laporan") || s.includes("apkt") || s.includes("id");
-        });
-      }
-    } else {
-      idIdx = (indices as any).id !== undefined && (indices as any).id !== null && (indices as any).id !== -1 ? (indices as any).id : -1;
-      if (idIdx === -1) {
-        idIdx = headers.findIndex(h => {
-          const s = String(h || "").toLowerCase();
-          return s.includes("tugas") || s.includes("id");
-        });
-      }
-      if (idIdx === -1) {
-        // Fallback: search for standard poCols[3] position (usually at column index 4)
-        idIdx = 4;
-      }
-    }
-
-    if (idIdx !== undefined && idIdx !== null && idIdx !== -1) {
-      const uniqueMap = new Map<string, any[]>();
-      filteredRows.forEach(row => {
-        if (row.length > idIdx) {
-          const id = String(row[idIdx] || "").trim().toUpperCase();
-          if (id && !uniqueMap.has(id)) {
-            uniqueMap.set(id, row);
-          }
+    // 3. De-duplicate filteredRows by unique ID (No Laporan for WO, No Tugas/ID for PO) for UP3/ULP views
+    if (!useAllRows) {
+      let idIdx = -1;
+      if (type === 'WO') {
+        idIdx = (indices.apktNo !== undefined && indices.apktNo !== null && indices.apktNo !== -1) ? indices.apktNo : -1;
+        if (idIdx === -1) {
+          idIdx = headers.findIndex(h => {
+            const s = String(h || "").toLowerCase();
+            return s.includes("laporan") || s.includes("apkt") || s.includes("id");
+          });
         }
-      });
-      filteredRows = Array.from(uniqueMap.values());
+      } else {
+        idIdx = (indices as any).id !== undefined && (indices as any).id !== null && (indices as any).id !== -1 ? (indices as any).id : -1;
+        if (idIdx === -1) {
+          idIdx = headers.findIndex(h => {
+            const s = String(h || "").toLowerCase();
+            return s.includes("tugas") || s.includes("id");
+          });
+        }
+        if (idIdx === -1) {
+          // Fallback: search for standard poCols[3] position (usually at column index 4)
+          idIdx = 4;
+        }
+      }
+
+      if (idIdx !== undefined && idIdx !== null && idIdx !== -1) {
+        const uniqueMap = new Map<string, any[]>();
+        filteredRows.forEach(row => {
+          if (row.length > idIdx) {
+            const id = String(row[idIdx] || "").trim().toUpperCase();
+            if (id && !uniqueMap.has(id)) {
+              uniqueMap.set(id, row);
+            }
+          }
+        });
+        filteredRows = Array.from(uniqueMap.values());
+      }
     }
 
     setModalHeaders(headers);
@@ -510,6 +528,10 @@ export default function App() {
                   <ULPPerformanceTable 
                     data={filteredData?.ulpPerformance || []} 
                     onDetailClick={(type, ulp, isCctv) => handleDetailClick(type, ulp, true, isCctv)}
+                  />
+                  <ReguPerformanceTable 
+                    data={filteredData?.reguPerformance || []} 
+                    onDetailClick={(type, regu, isCctv) => handleDetailClick(type, regu, 'REGU', isCctv)}
                   />
                 </div>
 

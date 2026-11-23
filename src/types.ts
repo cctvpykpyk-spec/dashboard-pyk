@@ -1,6 +1,7 @@
 export interface CCTVUsage {
   no: number;
   namaPetugas: string;
+  regu: string;
   ulp: string;
   jumlahWoTotal: number;
   totalWoPakaiCctv: number;
@@ -14,6 +15,7 @@ export interface CCTVUsage {
 export interface DashboardData {
   officerPerformance: OfficerPerformance[];
   ulpPerformance: ULPPerformance[];
+  reguPerformance: ReguPerformance[];
   cctvUsage: CCTVUsage[];
   summary: {
     totalBaca: number;
@@ -36,10 +38,12 @@ export interface DashboardData {
   rating: RatingData;
   rawWoRows: any[][];
   rawPoRows: any[][];
+  allWoRows: any[][];
+  allPoRows: any[][];
   woHeaders: string[];
   poHeaders: string[];
-  woIndices: { name: number; ulp: number; cctv: number; tglLapor: number; tglPengerjaan: number; tglSelesai: number; source: number; reporter: number; shift: number; rpt: number; rct: number; apktNo?: number };
-  poIndices: { name: number; ulp: number; cctv: number; id?: number };
+  woIndices: { name: number; ulp: number; cctv: number; tglLapor: number; tglPengerjaan: number; tglSelesai: number; source: number; reporter: number; shift: number; rpt: number; rct: number; apktNo?: number; regu?: number };
+  poIndices: { name: number; ulp: number; cctv: number; id?: number; regu?: number };
 }
 
 export interface OverSLAData {
@@ -113,6 +117,7 @@ export interface OfficerRating {
 
 export interface OfficerPerformance {
   name: string;
+  regu: string;
   ulp: string;
   jumlahWoTotal: number;
   totalWoPakaiCctv: number;
@@ -123,6 +128,18 @@ export interface OfficerPerformance {
 }
 
 export interface ULPPerformance {
+  ulp: string;
+  jumlahWoTotal: number;
+  totalWoPakaiCctv: number;
+  persenWo: string;
+  jumlahPoTotal: number;
+  totalPoPakaiCctv: number;
+  persenPo: string;
+  persenPenggunaanCctv: string;
+}
+
+export interface ReguPerformance {
+  regu: string;
   ulp: string;
   jumlahWoTotal: number;
   totalWoPakaiCctv: number;

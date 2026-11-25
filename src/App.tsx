@@ -181,10 +181,11 @@ export default function App() {
     };
 
     const headers = type === 'WO' ? data.woHeaders : data.poHeaders;
-    const useAllRows = filterMode === false || filterMode === 'REGU';
+    const isUp3Card = identifier === "UP3" || identifier === "ALL";
+    const useAllRows = true;
     const rawRows = type === 'WO'
-      ? (useAllRows ? (data.allWoRows || data.rawWoRows) : data.rawWoRows)
-      : (useAllRows ? (data.allPoRows || data.rawPoRows) : data.rawPoRows);
+      ? (data.allWoRows || data.rawWoRows)
+      : (data.allPoRows || data.rawPoRows);
     const indices = type === 'WO' ? data.woIndices : data.poIndices;
 
     // Build officer to ULP map for fallback
@@ -204,8 +205,23 @@ export default function App() {
     }
 
     // 2. Filter by ULP, Regu, or Officer
-    if (identifier === "UP3" || identifier === "ALL") {
-      setModalTitle(`DETAIL DATA ${type}${isCctv ? ' (CCTV)' : ''} - UP3 PAYAKUMBUH`);
+    if (isUp3Card) {
+      if (selectedUlp && selectedUlp !== "ALL") {
+        const targetUlp = cleanUlp(selectedUlp);
+        filteredRows = filteredRows.filter(row => {
+          if (indices.posko !== undefined && indices.posko !== -1 && row[indices.posko]) {
+            return cleanUlp(row[indices.posko]) === targetUlp;
+          }
+          if (indices.ulp !== -1 && row[indices.ulp]) {
+            return cleanUlp(row[indices.ulp]) === targetUlp;
+          }
+          const rowName = cleanName(row[indices.name]);
+          return (officerToUlpMap.get(rowName) || "") === targetUlp;
+        });
+        setModalTitle(`DETAIL DATA ${type}${isCctv ? ' (CCTV)' : ''} - ULP: ${selectedUlp}`);
+      } else {
+        setModalTitle(`DETAIL DATA ${type}${isCctv ? ' (CCTV)' : ''} - UP3 PAYAKUMBUH`);
+      }
     } else if (filterMode === 'REGU') {
       const targetRegu = cleanUlp(identifier);
       const reguIdx = indices.regu !== undefined ? indices.regu : -1;
@@ -218,7 +234,9 @@ export default function App() {
       const targetUlp = cleanUlp(identifier);
       filteredRows = filteredRows.filter(row => {
         let rowUlp = "";
-        if (indices.ulp !== -1 && row[indices.ulp]) {
+        if (indices.posko !== undefined && indices.posko !== -1 && row[indices.posko]) {
+          rowUlp = cleanUlp(row[indices.posko]);
+        } else if (indices.ulp !== -1 && row[indices.ulp]) {
           rowUlp = cleanUlp(row[indices.ulp]);
         } else {
           // Fallback to officer mapping

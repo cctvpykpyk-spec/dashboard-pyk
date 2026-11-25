@@ -589,14 +589,20 @@ export class GoogleSheetsService {
 
     const getUlpFromPosko = (poskoStr: string): string => {
       if (!poskoStr) return "";
-      const normalized = poskoStr.toUpperCase().replace(/\s+/g, "");
+      const cleaned = poskoStr.toUpperCase()
+        .replace(/^POSKO\s+ULP\s+/i, "")
+        .replace(/^ULP\s+/i, "")
+        .replace(/^POSKO\s+/i, "")
+        .replace(/\s+/g, "")
+        .trim();
+      if (!cleaned) return "";
       for (const ulp of ULP_LIST_FROM_SHEET) {
         const normalizedUlp = ulp.toUpperCase().replace(/\s+/g, "");
-        if (normalized.includes(normalizedUlp) || normalizedUlp.includes(normalized)) {
+        if (cleaned === normalizedUlp || cleaned.includes(normalizedUlp) || normalizedUlp.includes(cleaned)) {
           return ulp;
         }
       }
-      if (normalized.includes("LIMAPULUH") || normalized.includes("50KOTA") || normalized.includes("LIMA")) {
+      if (cleaned.includes("LIMAPULUH") || cleaned.includes("50KOTA") || cleaned.includes("LIMA")) {
         const found = ULP_LIST_FROM_SHEET.find(u => u.includes("LIMAPULUH") || u.includes("LIMA"));
         if (found) return found;
       }
@@ -788,6 +794,8 @@ export class GoogleSheetsService {
 
     const rawWoRowsFull: any[][] = [];
     const allWoRows: any[][] = [];
+    let totalWoAllCount = 0;
+    let totalWoAllCctvCount = 0;
     const officerRptOverSlaCount = new Map<string, number>();
     const officerRctOverSlaCount = new Map<string, number>();
     const officerWoRawStats = new Map<string, { total: number; cctv: number }>();
@@ -837,7 +845,7 @@ export class GoogleSheetsService {
 
       const officerUlp = nameKey ? officerToUlp.get(nameKey) : "";
       const poskoUlp = getUlpFromPosko(woPoskoValue);
-      const ulpName = officerUlp || poskoUlp || ulpNameLookup || ulpNameFromWo || "Unknown";
+      const ulpName = poskoUlp || ulpNameLookup || ulpNameFromWo || officerUlp || "Unknown";
       const poskoName = woPoskoValue || ulpName;
 
       const standardizedDisplayUlp = getCanonicalUlpName(standardizeUlpName(ulpName));
@@ -903,6 +911,10 @@ export class GoogleSheetsService {
 
       if (isUp3) {
         allWoRows.push([...rowToProcess]);
+        if (!targetUlpFilter || standardizedRowUlp === targetUlpFilter) {
+          totalWoAllCount++;
+          if (isCctv) totalWoAllCctvCount++;
+        }
 
         if (isNonEmptyRegu && !reguDisplayMap.has(cleanRegu)) {
           reguDisplayMap.set(cleanRegu, displayRegu);
@@ -936,11 +948,9 @@ export class GoogleSheetsService {
           uCounts.set(standardizedRowUlp, (uCounts.get(standardizedRowUlp) || 0) + 1);
         }
 
-        // UP3/ULP summary & ULP table (preserved as before with isReguCctvValid)
+        // ULP summary & REKAPITULASI KINERJA PER ULP (calculated by Posko/ULP across all active WO rows)
         const raw = ulpWoRawStats.get(standardizedRowUlp) || { total: 0, cctv: 0 };
-        if (isReguCctvValid) {
-          ulpWoRawStats.set(standardizedRowUlp, { total: raw.total + 1, cctv: raw.cctv + (isCctv ? 1 : 0) });
-        }
+        ulpWoRawStats.set(standardizedRowUlp, { total: raw.total + 1, cctv: raw.cctv + (isCctv ? 1 : 0) });
       }
 
       if (isWithinUlp && isReguCctvValid) {
@@ -1143,13 +1153,9 @@ export class GoogleSheetsService {
       ulpWoOverSlaStatsMap.set(ulp, { total: t, cctv: c });
     });
 
-    // Calculate overall WO summary counters
-    let totalWoCount = 0;
-    let totalWoCctvCount = 0;
-    globalWoReports.forEach(hasCctv => {
-      totalWoCount++;
-      if (hasCctv) totalWoCctvCount++;
-    });
+    // Calculate overall WO summary counters from all UP3 rows matching active date & ULP filter
+    const totalWoCount = totalWoAllCount;
+    const totalWoCctvCount = totalWoAllCctvCount;
 
     // 4. Aggregate PO data
     const poTargets = [
@@ -1175,6 +1181,8 @@ export class GoogleSheetsService {
     const reguPoRawStats = new Map<string, { total: number; cctv: number }>();
     const filteredPoRows: any[][] = [];
     const allPoRows: any[][] = [];
+    let totalPoAllCount = 0;
+    let totalPoAllCctvCount = 0;
 
     const poDataStart = poHeaderIdx !== -1 ? poHeaderIdx + 1 : 0;
     poRows.slice(poDataStart).forEach((row) => {
@@ -1202,7 +1210,7 @@ export class GoogleSheetsService {
         ? String(row[poUlpIdx]).toUpperCase().replace(/^POSKO ULP\s+/i, "").trim() 
         : "";
 
-      let ulpName = officerToUlp.get(nameKey) || poskoUlp || ulpNameLookup || ulpNameFromPo || "Unknown";
+      let ulpName = poskoUlp || ulpNameLookup || ulpNameFromPo || officerToUlp.get(nameKey) || "Unknown";
       let poskoName = poPoskoValue || ulpName;
 
       const reguValue = poReguIdx !== -1 && poReguIdx < row.length ? String(row[poReguIdx] || "").trim() : "";
@@ -1239,6 +1247,10 @@ export class GoogleSheetsService {
 
       if (isUp3 && targetUlp) {
         allPoRows.push(poRowProcessed);
+        if (isFilteredForCctvTab) {
+          totalPoAllCount++;
+          if (isCctv) totalPoAllCctvCount++;
+        }
 
         if (isNonEmptyRegu && !reguDisplayMap.has(cleanRegu)) {
           reguDisplayMap.set(cleanRegu, displayRegu);
@@ -1280,7 +1292,7 @@ export class GoogleSheetsService {
         globalPoTasks.set(taskId, (globalPoTasks.get(taskId) || false) || isCctv);
       }
       
-      if (targetUlp && isReguCctvValid) {
+      if (targetUlp) {
         if (!ulpPoTasks.has(targetUlp)) ulpPoTasks.set(targetUlp, new Map());
         ulpPoTasks.get(targetUlp)!.set(taskId, (ulpPoTasks.get(targetUlp)!.get(taskId) || false) || isCctv);
 
@@ -1334,13 +1346,9 @@ export class GoogleSheetsService {
       }
     });
 
-    // Calculate PO Stats
-    let totalPoCount = 0;
-    let totalPoCctvCount = 0;
-    globalPoTasks.forEach(hasCctv => {
-      totalPoCount++;
-      if (hasCctv) totalPoCctvCount++;
-    });
+    // Calculate PO Stats from all UP3 rows matching active date & ULP filter
+    const totalPoCount = totalPoAllCount;
+    const totalPoCctvCount = totalPoAllCctvCount;
 
     const poStatsMap = new Map<string, { total: number; cctv: number }>();
     officerPoTasks.forEach((tasks, name) => {
@@ -1727,13 +1735,13 @@ export class GoogleSheetsService {
       woHeaders: woRows[woHeaderIdx] || [],
       poHeaders: poRows[poHeaderIdx] || [],
       woIndices: { 
-        name: woNameIdx, ulp: woUlpIdx, cctv: woCctvIdx, 
+        name: woNameIdx, ulp: woUlpIdx, posko: woPoskoIdx, cctv: woCctvIdx, 
         tglLapor: woDateIdx, tglPengerjaan: woTglPengerjaanIdx, tglSelesai: woTglSelesaiIdx,
         source: woSourceIdx, reporter: woReporterIdx, shift: woShiftIdx,
         rpt: woRptIdx, rct: woRctIdx,
         apktNo: woIdIdx, regu: woReguIdx
       },
-      poIndices: { name: poNameIdx, ulp: poUlpIdx, cctv: poCctvIdx, id: poIdIdx, regu: poReguIdx },
+      poIndices: { name: poNameIdx, ulp: poUlpIdx, posko: poPoskoIdx, cctv: poCctvIdx, id: poIdIdx, regu: poReguIdx },
     };
   }
 }

@@ -42,8 +42,8 @@ export interface DashboardData {
   allPoRows: any[][];
   woHeaders: string[];
   poHeaders: string[];
-  woIndices: { name: number; ulp: number; cctv: number; tglLapor: number; tglPengerjaan: number; tglSelesai: number; source: number; reporter: number; shift: number; rpt: number; rct: number; apktNo?: number; regu?: number };
-  poIndices: { name: number; ulp: number; cctv: number; id?: number; regu?: number };
+  woIndices: { name: number; ulp: number; posko?: number; cctv: number; tglLapor: number; tglPengerjaan: number; tglSelesai: number; source: number; reporter: number; shift: number; rpt: number; rct: number; apktNo?: number; regu?: number };
+  poIndices: { name: number; ulp: number; posko?: number; cctv: number; id?: number; regu?: number };
 }
 
 export interface OverSLAData {
